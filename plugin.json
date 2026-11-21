@@ -1,0 +1,12 @@
+{
+  "name": "hagemi-pet-desktop",
+  "displayName": "Hagemi Pet Desktop",
+  "description": "Hagemi (哈基米) desktop pet for Antigravity: transparent always-on-top desktop overlay + in-app mode, quick click-to-check quota badge, custom sound effects, system tray, and daily usage ledger.",
+  "version": "0.2.0",
+  "logo": "assets/logo.png",
+  "homepage": "https://github.com/liuzongh-R/hagemi-pet-desktop",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liuzongh-R/hagemi-pet-desktop"
+  }
+}

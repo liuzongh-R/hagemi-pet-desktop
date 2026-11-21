@@ -1,0 +1,101 @@
+{
+  "name": "hagemi-pet-desktop",
+  "version": "0.2.0",
+  "description": "Hagemi Pet Desktop Edition (Gemini 哈基喵): transparent always-on-top Windows & macOS desktop pet + Antigravity plugin with click-to-check quota badge, Apple Liquid Glass theme, Chat, Screen Peek, sound effects, system tray, and 30-day usage ledger.",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "liuzongh-R (based on KCFindstr/hagemi-pet-agy)",
+  "homepage": "https://github.com/liuzongh-R/hagemi-pet-desktop",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liuzongh-R/hagemi-pet-desktop.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "electron electron/main.cjs",
+    "test": "node --test \"test/*.test.mjs\"",
+    "preview": "node tools/preview.mjs",
+    "dev": "node tools/dev.mjs",
+    "install:local": "node tools/install-local.mjs",
+    "uninstall:local": "node tools/install-local.mjs --uninstall",
+    "dist:bundles": "node tools/build-installers.mjs",
+    "dist:win": "electron-builder --win nsis && node tools/build-installers.mjs --win",
+    "dist:mac": "electron-builder --mac dmg zip && node tools/build-installers.mjs --mac",
+    "build:rig": "python tools/build_rig.py",
+    "build:under": "python tools/inpaint_under.py",
+    "media": "node tools/readme-media.mjs"
+  },
+  "dependencies": {
+    "@google/genai": "^1.56.1"
+  },
+  "devDependencies": {
+    "electron": "^45.4.1",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.hagemi.pet.desktop",
+    "productName": "Hagemi Pet Desktop",
+    "asar": false,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "package.json",
+      "plugin.json",
+      "LICENSE",
+      "NOTICE.md",
+      "README.md",
+      "README.zh-CN.md",
+      "DESKTOP.zh-CN.md",
+      "electron/**/*",
+      "assets/**/*",
+      "sidecars/**/*",
+      "sound/**/*",
+      "node_modules/**/*",
+      "!node_modules/electron/**/*",
+      "!node_modules/electron-builder/**/*",
+      "!node_modules/.cache/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "artifactName": "Hagemi-Pet-Desktop-Windows-Setup-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "哈基米桌宠 Hagemi Pet"
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "icon": "assets/logo.png",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64", "x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["arm64", "x64"]
+        }
+      ],
+      "artifactName": "Hagemi-Pet-Desktop-macOS-${version}-${arch}.${ext}",
+      "extendInfo": {
+        "LSUIElement": true,
+        "NSScreenCaptureUsageDescription": "哈基米桌宠需要屏幕录制权限以使用「看屏幕碎碎念」多模态画面功能（截图仅在内存中处理，不会保存到硬盘）。"
+      }
+    }
+  }
+}
