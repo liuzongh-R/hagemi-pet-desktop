@@ -120,6 +120,38 @@ export function buildScreenPeekPrompt({ language = 'zhs', hasImage = false, acti
   ].filter(Boolean).join('\n\n');
 }
 
+export async function callGeminiInteractions({ apiKey, model, input, clientFactory = null, fetchFn = fetch }) {
+  if (clientFactory) {
+    const ai = clientFactory(apiKey);
+    return ai.interactions.create({ model, store: false, input });
+  }
+  try {
+    const mod = await import('@google/genai');
+    const ai = new mod.GoogleGenAI({ apiKey });
+    return await ai.interactions.create({ model, store: false, input });
+  } catch (err) {
+    if (err?.code !== 'ERR_MODULE_NOT_FOUND') throw err;
+  }
+  const res = await fetchFn('https://generativelanguage.googleapis.com/v1/interactions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    },
+    body: JSON.stringify({ model, store: false, input }),
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!res.ok) throw new Error(`gemini-http-${res.status}`);
+  const data = await res.json();
+  const outputText = data.output_text || (data.steps || [])
+    .filter(s => s.type === 'model_output')
+    .flatMap(s => s.content || [])
+    .filter(c => c.type === 'text' && c.text)
+    .map(c => c.text)
+    .join('');
+  return { ...data, output_text: outputText };
+}
+
 export async function analyzeScreenWithGemini({
   apiKey,
   model = 'gemini-3.5-flash-lite',
@@ -135,14 +167,11 @@ export async function analyzeScreenWithGemini({
   if (!base64Jpeg) throw new Error('missing-screenshot');
 
   const prompt = buildScreenPeekPrompt({ language, hasImage: true, activeWindow, recent, personaExtra });
-  const ai = clientFactory
-    ? clientFactory(key)
-    : new (await import('@google/genai')).GoogleGenAI({ apiKey: key });
-
   const chosenModel = VISION_MODELS.includes(model) ? model : 'gemini-3.5-flash-lite';
-  const interaction = await ai.interactions.create({
+  const interaction = await callGeminiInteractions({
+    apiKey: key,
     model: chosenModel,
-    store: false,
+    clientFactory,
     input: [
       { type: 'text', text: prompt },
       { type: 'image', data: base64Jpeg, mime_type: 'image/jpeg' },

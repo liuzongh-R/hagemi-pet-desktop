@@ -267,18 +267,13 @@ function applyMacDockPolicy() {
   if (!IS_MAC) return;
   const showDock = !!currentSettings.showInDock;
   try {
-    if (typeof app.setActivationPolicy === 'function') {
-      if (!showDock && win && !win.isDestroyed()) {
-        win.setVisibleOnAllWorkspaces(false);
-      }
-      app.setActivationPolicy(showDock ? 'regular' : 'accessory');
+    if (app.dock) {
       if (showDock) {
-        app.dock?.show?.();
-        app.dock?.setMenu?.(buildTrayMenu());
+        app.dock.show();
+        app.dock.setMenu?.(buildTrayMenu());
+      } else {
+        app.dock.hide();
       }
-    } else if (app.dock) {
-      if (showDock) app.dock.show();
-      else app.dock.hide();
     }
   } catch {}
 }
@@ -305,7 +300,10 @@ function applyWindowState() {
   if (!win || win.isDestroyed()) return;
   const shouldShow = currentSettings.displayMode !== 'app' && !isPetHidden();
   if (shouldShow) {
-    if (!win.isVisible()) win.showInactive();
+    if (!win.isVisible()) {
+      if (IS_MAC) win.show();
+      else win.showInactive();
+    }
   } else {
     if (win.isVisible()) win.hide();
   }
@@ -318,11 +316,11 @@ function applyWindowState() {
   win.setAlwaysOnTop(true, level, 1);
   applyLaunchAtLogin(currentSettings.launchAtLogin);
   if (IS_MAC) {
-    applyMacDockPolicy();
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: topFull });
     if (typeof win.setHiddenInMissionControl === 'function') {
       win.setHiddenInMissionControl(true);
     }
+    applyMacDockPolicy();
   }
 }
 
@@ -614,9 +612,8 @@ function createOverlayWindow() {
     fullscreenable: false,
     skipTaskbar: true,
     focusable: false,
-    show: false,
+    show: true,
     alwaysOnTop: true,
-    type: IS_MAC ? 'panel' : undefined,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -627,6 +624,12 @@ function createOverlayWindow() {
 
   win.setIgnoreMouseEvents(true, { forward: true });
   win.setAlwaysOnTop(true, 'screen-saver', 1);
+  if (IS_MAC) {
+    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    if (typeof win.setHiddenInMissionControl === 'function') {
+      win.setHiddenInMissionControl(true);
+    }
+  }
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//i.test(url)) shell.openExternal(url).catch(() => {});
@@ -635,6 +638,9 @@ function createOverlayWindow() {
 
   win.loadURL(bridgeUrl);
   win.once('ready-to-show', () => {
+    applyWindowState();
+  });
+  win.webContents.on('did-finish-load', () => {
     applyWindowState();
   });
   win.on('closed', () => {

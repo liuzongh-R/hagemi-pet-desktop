@@ -30,7 +30,7 @@ set "SRC=%~dp0payload"
 if not exist "%SRC%\plugin.json" set "SRC=%~dp0"
 set "TARGET=%USERPROFILE%\.gemini\config\plugins\hagemi-pet-desktop"
 
-echo [1/3] 正在安装到 Antigravity 插件目录：
+echo [1/4] 正在安装到 Antigravity 插件目录：
 echo       %TARGET%
 if not exist "%USERPROFILE%\.gemini\config\plugins" mkdir "%USERPROFILE%\.gemini\config\plugins"
 if exist "%TARGET%" (
@@ -46,26 +46,45 @@ for %%D in (assets electron sidecars sound) do (
   if exist "%SRC%\%%D" xcopy /e /i /y /q "%SRC%\%%D" "%TARGET%\%%D\" >nul
 )
 
-echo [2/3] 正在安装桌面悬浮壳与 Gemini SDK 依赖（首次可能需要 10~30 秒）...
+echo [2/4] 正在安装 npm 依赖包...
 pushd "%TARGET%"
 call npm install --omit=dev --no-audit --no-fund
 if errorlevel 1 (
-  echo.
-  echo [警告] 依赖安装遇到网络问题，请检查网络或配置 npm 镜像后重试。
-  popd
-  pause
-  exit /b 1
+  echo   -^> 正在自动切换国内镜像源重试...
+  call npm install --omit=dev --no-audit --no-fund --registry=https://registry.npmmirror.com
+  if errorlevel 1 (
+    echo.
+    echo [警告] 依赖安装遇到网络问题，请检查网络后重试。
+    popd
+    pause
+    exit /b 1
+  )
+)
+
+echo [3/4] 正在下载并验证 Electron 桌面悬浮内核（首次约需 15~45 秒）...
+node -e "const fs=require('fs'),p=require('electron');if(!p||!fs.existsSync(p)){process.exit(1)}console.log('  -> Electron 就绪:',p);"
+if errorlevel 1 (
+  echo   -^> 正在使用国内高速镜像下载 Electron...
+  set "ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/"
+  node node_modules\electron\install.js
+  node -e "const fs=require('fs'),p=require('electron');if(!p||!fs.existsSync(p)){process.exit(1)}console.log('  -> Electron 就绪:',p);"
+  if errorlevel 1 (
+    echo.
+    echo [警告] Electron 二进制下载未完成，请检查网络或代理后重试。
+    popd
+    pause
+    exit /b 1
+  )
 )
 popd
 
-echo [3/3] 安装完成！
+echo [4/4] 安装完成！
 echo.
 echo ============================================================
 echo   安装成功！哈基米将在约 15~30 秒内悬浮在你的 Windows 桌面上。
 echo   - 如之前装过原版 Hagemi Pet，请在 Antigravity 插件页关闭原版
 echo   - 右键点哈基米：聊一聊 / 瞄一眼屏幕 / 液态玻璃主题 / 全部设置
 echo   - 全局显隐快捷键：Ctrl+Shift+H
-echo   - 也可直接运行 "%TARGET%\node_modules\.bin\electron.cmd" "%TARGET%" 独立启动
 echo ============================================================
 echo.
 pause

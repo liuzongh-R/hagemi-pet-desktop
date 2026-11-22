@@ -29,11 +29,11 @@ function copyPayload(dest) {
     const src = join(ROOT, d);
     if (existsSync(src)) cpSync(src, join(dest, d), { recursive: true });
   }
-  // Keep electron + @google/genai in plugin runtime dependencies so npm install --omit=dev works cleanly.
+  // Use universal >=31.0.0 range for electron and zero external SDK dependencies (Gemini REST uses built-in fetch),
+  // so npm install succeeds on any global or domestic npm mirror without ETARGET errors.
   const pkgPath = join(dest, 'package.json');
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-  const electronVer = pkg.devDependencies?.electron || pkg.dependencies?.electron;
-  pkg.dependencies = { ...(pkg.dependencies || {}), ...(electronVer ? { electron: electronVer } : {}) };
+  pkg.dependencies = { electron: '>=31.0.0' };
   delete pkg.devDependencies;
   delete pkg.build;
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');

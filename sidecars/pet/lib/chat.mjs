@@ -4,6 +4,7 @@
 //   2. gemini: calls the official @google/genai SDK (Interactions API, store: false)
 //   3. openai: calls any OpenAI-compatible /chat/completions endpoint
 import { fullWidthPunctuation, MOODS, PERSONA, scrub } from './persona.mjs';
+import { callGeminiInteractions } from './screen-peek.mjs';
 
 export const CHAT_GEMINI_MODELS = Object.freeze([
   'gemini-4-hydrogen',
@@ -118,13 +119,12 @@ export class ChatSession {
       if (!apiKey) throw new Error('missing-api-key');
       const model = CHAT_GEMINI_MODELS.includes(chatConfig.geminiModel) ? chatConfig.geminiModel : 'gemini-4-hydrogen';
       const prompt = flattenChatPrompt(bundle, language);
-      const ai = geminiClientFactory
-        ? geminiClientFactory(apiKey)
-        : new (await import('@google/genai')).GoogleGenAI({ apiKey });
-      const res = await ai.interactions.create({
+      const res = await callGeminiInteractions({
+        apiKey,
         model,
-        store: false,
         input: prompt,
+        clientFactory: geminiClientFactory,
+        fetchFn,
       });
       rawText = res?.output_text || '';
     } else if (provider === 'openai') {
